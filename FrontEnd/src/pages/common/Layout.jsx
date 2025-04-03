@@ -48,7 +48,7 @@ export default function Layout() {
         {" "}
         {/* Adjust margin based on Sidebar width */}
         <TopNav />
-        <div className="h-screen bg-lightWhite">
+        <div className="h-screen ">
           <Outlet />
         </div>
       </div>
