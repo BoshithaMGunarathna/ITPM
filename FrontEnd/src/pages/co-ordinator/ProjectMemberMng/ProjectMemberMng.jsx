@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import CoordinatorWelcomeCard from '../../../components/CoordinatorWelcomeCard';
 import { useNavigate } from 'react-router-dom';
