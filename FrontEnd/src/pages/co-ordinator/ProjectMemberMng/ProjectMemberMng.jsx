@@ -1,526 +1,413 @@
-/* eslint-disable no-unused-vars */
-import React, { useEffect, useState } from 'react';
-import CoordinatorWelcomeCard from '../../../components/CoordinatorWelcomeCard';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Modal from 'react-modal';
-import Sweetalert from 'sweetalert2';
-import { FaEdit, FaTrash, FaUserPlus } from 'react-icons/fa';
+"use client"
 
+import { useEffect, useState } from "react"
+import { Loader2, UserPlus, Edit, Trash, Eye } from "lucide-react"
+import CoordinatorWelcomeCard from "../../../components/CoordinatorWelcomeCard"
 
+import PropTypes from "prop-types"
 
-function ProjectMemberMng() {
-  const navigate = useNavigate();
-  const [tableData, setTableData] = useState([]);
-
-  const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
-  const [selectedUser, setSelectedUser] = useState({
-    firstName: '',
-    lastName: '',
-    contactNo: '',
-    email: ''
-  });;
-  const [selectedOption, setSelectedOption] = useState("option1");
-
-
-  const [assignedUserData, setAssignedUserData] = useState([]);
-
-  useEffect(() => {
-    async function fetchAssignedUserData() {
-      try {
-        // Fetch assigned users from Database A
-        const assignedUsersResponse = await axios.get('http://localhost:510/user', {
-
-        });
-
-        // Assuming assignedUsersResponse.data contains the assigned users
-        const assignedUsers = assignedUsersResponse.data;
-        setAssignedUserData(assignedUsers);
-      } catch (error) {
-        console.log("Error fetching assigned user data:", error);
-        toast.error('Failed to load assigned users');
-      }
-    }
-
-    fetchAssignedUserData();
-  }, []);
-
-  const [pmember, setPmember] = useState([]);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await axios.get('http://localhost:510/prmember');
-        const data = response.data;
-        setPmember(data);
-      } catch (error) {
-        console.log("Error fetching data:", error);
-        toast.error('Failed to load members');
-      }
-    }
-
-    fetchData();
-  }, []); // Add empty dependency array here
-
-
-
-  // get data from the backend (all 3 models) and update the table
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Fetch only the users with the role 'coordinator'
-        const userData = await axios.get('http://localhost:510/prmember', {
-          params: {
-            role: 'coordinator'
-          }
-        });
-
-        const [scheduleData, markingData] = await Promise.all([
-          axios.get('http://localhost:510/assignShedule'),
-          axios.get('http://localhost:510/assignMark')
-        ]);
-
-        // console.log("userData:", userData);
-        // console.log("scheduleData:", scheduleData);
-        // console.log("markingData:", markingData);
-
-        // Assuming userData.data contains the filtered users
-        const members = userData.data;
-        const scheduleMap = new Map(scheduleData.data.map(item => [item.firstName, item]));
-        const markingMap = new Map(markingData.data.map(item => [item.firstName, item]));
-
-        // console.log("Members:", members);
-        // console.log("Schedule Map:", scheduleMap);
-        // console.log("Marking Map:", markingMap);
-
-        const updatedTableData = members.map(member => ({
-          ...member,
-          assignedSchedule: scheduleMap.get(member.firstName) || null,
-          assignedMarking: markingMap.get(member.firstName) || null
-        }));
-
-        console.log("Updated Table Data:", updatedTableData);
-        setTableData(updatedTableData);
-      } catch (error) {
-        console.log("Error fetching data:", error);
-        toast.error('Failed to load members');
-      }
-    }
-
-    fetchData();
-  }, []);
-
-
-
-
-  //navigate to next page
-  const handlePage = () => {
-    navigate('/dashboard/addmember');
-  };
-  //assigning page eka
-  const handleAssignPage = (rowData) => {
-    if (rowData.assignedSchedule || rowData.assignedMarking) {
-      const toastId = toast.warn(
-        <div>
-          <p>This member is already assigned to both schedule and marking.</p>
-          <button onClick={() => handleProceed(rowData, toastId)} className="bg-blue-500 text-white rounded bg-primary px-3 pb-2 pt-2.5 ml-2">Proceed</button>
-          <button onClick={() => toast.dismiss(toastId)} className="bg-red-500 inline-block rounded text-white bg-primary px-3 pb-2 pt-2.5 ml-2">Cancel</button>
-        </div>,
-        {
-          closeOnClick: false,
-          draggable: false,
-          autoClose: false // Prevents auto-closing
-        }
-      );
-    } else {
-      navigate('/dashboard/assignmember', { state: { rowData } });
-    }
-  };
-
-  const handleProceed = (rowData, toastId) => {
-    navigate('/dashboard/assignmember', { state: { rowData } });
-    toast.dismiss(toastId); // Dismiss the toast message after proceeding
-  };
-  //pop up window eka
-  const handleUpdate = (user) => {
-    setSelectedUser(user); // Set the selected user details
-    setIsModalOpen(true); // Open the modal
-  };
-
-  //update function
-  const handleUpdateUser = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.put(`http://localhost:510/user/update-account/${selectedUser._id}`, selectedUser);
-
-      if (response.status === 200) {
-        console.log('User updated successfully:', response.data.message);
-        setTableData(prevData => prevData.map(data => data._id === selectedUser._id ? selectedUser : data)); // refresh nokara table eke adaala data eka witarak update wenawa
-        setIsModalOpen(false); // Close modal after successful update
-        Sweetalert.fire({
-          title: 'Success',
-          text: 'User updated successfully',
-          icon: 'success',
-          confirmButtonText: 'OK'
-        })
-      } else {
-        console.error('Failed to update user:', response.data.message);
-        Sweetalert.fire({
-          title: 'Error',
-          text: response.data.message,
-          icon: 'error',
-          confirmButtonText: 'OK'
-        })
-      }
-    } catch (error) {
-      console.error('Error updating user:', error.message);
-      Sweetalert.fire({
-        title: 'Error',
-        text: error.message,
-        icon: 'error',
-        confirmButtonText: 'OK'
-      })
-    }
-  };
-  // delete function
-  // const handleDelete = async (id) => {
-  //   try {
-
-
-  //     const response = await axios.delete(`http://localhost:510/user/delete-account/${id}`);
-
-  //     if (response.status === 200) {
-  //       console.log('User deleted successfully');
-  //       // Remove the deleted user from the table data
-  //       setTableData(prevData => prevData.filter(data => data._id !== id)); 
-  //       toast.success('User deleted successfully');
-  //     } else {
-  //       console.error('Failed to delete user:', response.data.message);
-  //       toast.error('Failed to delete user:', response.data.message);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error deleting user:', error.message);
-  //     toast.error('Error deleting user:', error.message);
-  //   }
-  // };
-
-
-
-  const handleDelete = (id) => {
-    Sweetalert.fire({
-      title: 'Are you sure?',
-      text: "You want to delete this!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        axios.delete(`http://localhost:510/user/delete-account/${id}`).then((response) => {
-          console.log(response)
-          if (response.status === 200) {
-            setTableData(prevData => prevData.filter(data => data._id !== id));
-            Sweetalert.fire(
-              'Deleted!',
-              'Your record has been deleted.',
-              'success'
-            )
-          } else {
-            Sweetalert.fire(
-              'Not Deleted!',
-              'Something want wrong',
-              'error'
-            )
-
-          }
-        })
-
-      }
-    })
-
-  }
-
-  const handlePmemDelete = (id) => {
-    Sweetalert.fire({
-      title: 'Are you sure?',
-      text: "You want to delete this!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        axios.delete(`http://localhost:510/prmember/delete/${id}`).then((response) => {
-          console.log(response)
-          if (response.status === 200) {
-            setTableData(prevData => prevData.filter(data => data._id !== id));
-            Sweetalert.fire(
-              'Deleted!',
-              'Your record has been deleted.',
-              'success'
-            )
-          } else {
-            Sweetalert.fire(
-              'Not Deleted!',
-              'Something want wrong',
-              'error'
-            )
-
-          }
-        })
-
-      }
-    })
-
-  }
-  const handleAdd = async (user) => {
-    try {
-      // Create a new project member object based on the user data
-      const newMember = {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        contactNo: user.contactNo,
-        email: user.email,
-        staffPost: user.staffPost,
-        level: user.level,
-        assignedStatus: 'Assigned',
-      };
-      console.log('New Member:', newMember);
-
-      // Make a POST request to add the user as a project member
-      const response = await axios.post('http://localhost:510/prmember/add', newMember);
-
-      if (response.status === 201) {
-        // Get the existing roles of the user
-        const existingRoles = user.role || [];
-
-        // Append the new role to the existing roles array
-        const updatedRoles = [...existingRoles, 'member'];
-
-        // Update the user's role attribute with the updated roles
-        const updateUser = {
-          role: updatedRoles
-        };
-
-        const response2 = await axios.put(`http://localhost:510/user/update-account/${user._id}`, updateUser);
-
-        if (response2.status === 201) {
-          console.log('User role updated successfully:', response2.data.message);
-        }
-
-        // Remove the user from the tableData state if successfully added as a project member
-        setTableData(prevData => prevData.filter(userData => userData._id !== user._id));
-        toast.success('User added as a project member successfully');
-      } else {
-        console.error('Failed to add user as a project member:', response.data.message);
-        toast.error('Failed to add user as a project member: ' + response.data.message);
-      }
-    } catch (error) {
-      console.error('Error adding user as a project member:', error.message);
-      toast.error('Error adding user as a project member: ' + error.message);
-    }
-  };
-
-
+function Card({ className, children, ...props }) {
   return (
-    <div className="p-4">
-      <CoordinatorWelcomeCard />
-      <p className="mt-2 text-gray-600">Project Member Management</p>
-      {/* Radio button group to select between options */}
-      <div className="mt-4">
-        <label className="mr-4">
-          <input
-            type="radio"
-            value="option1"
-            checked={selectedOption === "option1"}
-            onChange={() => setSelectedOption("option1")}
-            className="mr-2"
-          />
-          Add Project Members
-        </label>
-        <label>
-          <input
-            type="radio"
-            value="option2"
-            checked={selectedOption === "option2"}
-            onChange={() => setSelectedOption("option2")}
-            className="mr-2"
-          />
-          Manage Project members
-        </label>
-      </div>
-      {selectedOption === "option1" && (
-        <div className="overflow-x-auto bg-white px-6 py-8 rounded shadow-md text-black w-full mb-8">
-          <h2 className="text-lg font-bold mb-4">Assign Users as project managers</h2>
-          <table className="min-w-full text-left text-sm font-light" style={{ maxWidth: '400px' }}>
-            <thead className="border-b bg-white font-medium dark:border-neutral-500 dark:bg-neutral-600">
-              <tr>
-                <th scope="col" className="px-4 py-4">Name</th>
-                <th scope="col" className="px-4 py-4">Email</th>
-                <th scope="col" className="px-4 py-4">Staff Post</th>
-                <th scope="col" className="px-4 py-4">Add As a Project member</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Map through all assigned users and display their names, emails, and staff posts */}
-              {assignedUserData.map((user, index) => (
-                <tr key={index} className="border-dark:border-neutral-500">
-                  <td className="px-4 py-4">{user.firstName} {user.lastName}</td>
-                  <td className="px-4 py-4">{user.email}</td>
-                  <td className="px-4 py-4">{user.staffPost}</td>
-                  {/* Button for each user */}
-                  <td className="px-4 py-4 flex justify-center text-white">
-                    <button
-                      onClick={() => handleAdd(user)}
-                      className={`bg-blue-500 rounded bg-primary px-3 pb-2 pt-2.5 ml-2 ${pmember.find((member) => member.email === user.email) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      disabled={pmember.find((member) => member.email === user.email)}
-                    >
-                      Add
-                    </button>
-                   
-
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )
-      }
-
-
-      {
-        selectedOption === "option2" && (
-          <div className="overflow-x-auto bg-white px-6 py-8 rounded shadow-md text-black w-full">
-            <h2 className="text-lg font-bold mb-4">Assign project managers to schedules and markings</h2>
-            <table className="min-w-full text-left text-sm font-light">
-              <thead className="border-b bg-white font-medium dark:border-neutral-500 dark:bg-neutral-600">
-                <tr>
-                  <th scope="col" className="px-6 py-4">First Name</th>
-                  <th scope="col" className="px-6 py-4">Last Name</th>
-                  <th scope="col" className="px-6 py-4">Contact Number</th>
-                  <th scope="col" className="px-6 py-4">staffPost</th>
-                  <th scope="col" className="px-6 py-4">Email</th>
-                  <th scope="col" className="px-6 py-4">Assigned Schedule</th>
-                  <th scope="col" className="px-6 py-4">Assigned Marking</th>
-                  <th scope="col" className="px-6 py-4">Assign</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.map((data, index) => (
-                  <tr key={index} className="border-dark:border-neutral-500">
-                    <td className="px-6 py-4">{data.firstName}</td>
-                    <td className="px-6 py-4">{data.lastName}</td>
-                    <td className="px-6 py-4">{data.contactNo}</td>
-                    <td className="px-6 py-4">{data.staffPost}</td>
-                    <td className="px-6 py-4">{data.email}</td>
-
-                    <td className="px-6 py-4">{data.assignedSchedule ? data.assignedSchedule.selectedAssignment : 'Not Assigned to any'}</td>
-                    <td className="px-6 py-4">{data.assignedMarking ? data.assignedMarking.selectedAssignment : 'Not Assigned to any'}</td>
-                    <td className="px-6 py-4 flex justify-center text-white">
-                      <button onClick={() => handleUpdate(data)} className="bg-blue-500 rounded bg-primary px-3 pb-2 pt-2.5 ml-2">
-                        <FaEdit />
-                      </button>
-                      <button onClick={() => handlePmemDelete(data._id)} className="bg-red-500 inline-block rounded bg-primary px-3 pb-2 pt-2.5 ml-2">
-                        <FaTrash />
-                      </button>
-
-                      <ToastContainer />
-                      <button
-                        onClick={() => handleAssignPage(data)}
-                        disabled={data.assignedSchedule && data.assignedMarking}
-                        className={`bg-green-700 inline-block rounded bg-primary px-3 pb-2 pt-2.5 ml-2 ${data.assignedSchedule && data.assignedMarking ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        <FaUserPlus />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-        )
-      }
-
-      <div className="px-4 py-2">
-        <button onClick={handlePage} className="bg-blue-600 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded mr-2">
-          Add Member
-        </button>
-      </div>
-
-      {/* pop up for Update */}
-      {
-        isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500 bg-opacity-75">
-            <div className="bg-white p-8 rounded-md shadow-md w-96">
-              <h2 className="text-xl mb-4">Update User</h2>
-              <form onSubmit={handleUpdateUser}>
-                <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">First Name</label>
-                  <input
-                    type="text"
-                    value={selectedUser.firstName}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, firstName: e.target.value })}
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">Last Name</label>
-                  <input
-                    type="text"
-                    value={selectedUser.lastName}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, lastName: e.target.value })}
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">Contact Number</label>
-                  <input
-                    type="text"
-                    value={selectedUser.contactNo}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, contactNo: e.target.value })}
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={selectedUser.email}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2 focus:outline-none focus:shadow-outline"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                  >
-                    Update
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )
-      }
-    </div >
-  );
-
-
+    <div className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className || ""}`} {...props}>
+      {children}
+    </div>
+  )
 }
 
-export default ProjectMemberMng;
+Card.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node.isRequired,
+}
+
+// Simple Tab component
+function Tabs({ tabs, activeTab, setActiveTab }) {
+  return (
+    <div className="border-b mb-6">
+      <div className="flex space-x-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 font-medium ${activeTab === tab.id ? "border-b-2 border-primary text-primary" : "text-gray-500 hover:text-gray-700"
+              }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+Tabs.propTypes = {
+  tabs: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+    })
+  ).isRequired,
+  activeTab: PropTypes.string.isRequired,
+  setActiveTab: PropTypes.func.isRequired,
+}
+
+export default function ProjectMemberMng() {
+  const [users, setUsers] = useState([])
+  const [projectMembers, setProjectMembers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [activeTab, setActiveTab] = useState("assign")
+  const [addingMember, setAddingMember] = useState(null)
+
+  const tabs = [
+    { id: "assign", label: "Assign Project Members" },
+    { id: "manage", label: "Manage Project Members" },
+  ]
+
+  // Fetch all users
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+
+        // Fetch users
+        const usersResponse = await fetch("http://localhost:510/user")
+        if (!usersResponse.ok) {
+          throw new Error("Failed to fetch users")
+        }
+        const usersData = (await usersResponse.ok) ? await usersResponse.json() : []
+
+        // Fetch existing project members
+        const membersResponse = await fetch("http://localhost:510/prmember")
+        const membersData = membersResponse.ok ? await membersResponse.json() : []
+
+        setUsers(usersData)
+        setProjectMembers(membersData || [])
+      } catch (err) {
+        setError("Error fetching data. Please try again later.")
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  // Check if user is already a project member
+  const isProjectMember = (user) => {
+    return projectMembers.some(
+      (member) =>
+        member.email === user.email && member.firstName === user.firstName && member.lastName === user.lastName,
+    )
+  }
+
+  // Handle adding a user as project member
+  const handleAddMember = async (user) => {
+    // Set the user being added to show loading state on button
+    setAddingMember(user._id)
+
+    // Show SweetAlert confirmation
+    if (typeof window !== "undefined" && window.Swal) {
+      const result = await window.Swal.fire({
+        title: "Confirm",
+        text: `Are you sure you want to add ${user.firstName} ${user.lastName} as a project member?`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, add member!",
+      })
+
+      if (result.isConfirmed) {
+        try {
+          const response = await fetch("http://localhost:510/prmember/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              staffPost: user.staffPost,
+              contactNo: user.contactNo,
+              role: user.role,
+            }),
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.message || "Failed to add project member")
+          }
+
+          const newMember = await response.json()
+
+          // Update project members list
+          setProjectMembers([...projectMembers, newMember])
+
+          // Show success message
+          window.Swal.fire(
+            "Added!",
+            `${user.firstName} ${user.lastName} has been added as a project member.`,
+            "success",
+          )
+        } catch (error) {
+          console.error("Error adding project member:", error)
+          window.Swal.fire("Error!", error.message || "Failed to add project member.", "error")
+        }
+      }
+    } else {
+      // Fallback if SweetAlert is not available
+      if (confirm(`Are you sure you want to add ${user.firstName} ${user.lastName} as a project member?`)) {
+        try {
+          const response = await fetch("http://localhost:510/prmember/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              staffPost: user.staffPost,
+              contactNo: user.contactNo,
+              role: user.role,
+            }),
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.message || "Failed to add project member")
+          }
+
+          const newMember = await response.json()
+          setProjectMembers([...projectMembers, newMember])
+          alert(`${user.firstName} ${user.lastName} has been added as a project member.`)
+        } catch (error) {
+          console.error("Error adding project member:", error)
+          alert(error.message || "Failed to add project member.")
+        }
+      }
+    }
+
+    // Reset adding state
+    setAddingMember(null)
+  }
+
+  // Handle viewing member details
+  const handleViewMember = (member) => {
+    if (typeof window !== "undefined" && window.Swal) {
+      window.Swal.fire({
+        title: `${member.firstName} ${member.lastName}`,
+        html: `
+          <div class="text-left">
+            <p><strong>Email:</strong> ${member.email}</p>
+            <p><strong>Position:</strong> ${member.staffPost}</p>
+            <p><strong>Contact:</strong> ${member.contactNo}</p>
+            <p><strong>Roles:</strong> ${Array.isArray(member.role) ? member.role.join(", ") : member.role}</p>
+          </div>
+        `,
+        icon: "info",
+        confirmButtonText: "Close",
+      })
+    } else {
+      alert(`
+        Member: ${member.firstName} ${member.lastName}
+        Email: ${member.email}
+        Position: ${member.staffPost}
+        Contact: ${member.contactNo}
+        Roles: ${Array.isArray(member.role) ? member.role.join(", ") : member.role}
+      `)
+    }
+  }
+
+  // Handle editing member
+  const handleEditMember = (member) => {
+    // This would typically open a modal or navigate to an edit page
+    alert(`Edit functionality for ${member.firstName} ${member.lastName} would go here`)
+  }
+
+  // Handle deleting member
+  const handleDeleteMember = async (member) => {
+    if (typeof window !== "undefined" && window.Swal) {
+      const result = await window.Swal.fire({
+        title: "Are you sure?",
+        text: `You are about to remove ${member.firstName} ${member.lastName} from project members.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete!",
+      })
+
+      if (result.isConfirmed) {
+        // Here you would make an API call to delete the member
+        // For now, we'll just update the local state
+        setProjectMembers(projectMembers.filter((m) => m._id !== member._id))
+
+        window.Swal.fire(
+          "Deleted!",
+          `${member.firstName} ${member.lastName} has been removed from project members.`,
+          "success",
+        )
+      }
+    } else {
+      if (confirm(`Are you sure you want to remove ${member.firstName} ${member.lastName} from project members?`)) {
+        // Here you would make an API call to delete the member
+        // For now, we'll just update the local state
+        setProjectMembers(projectMembers.filter((m) => m._id !== member._id))
+        alert(`${member.firstName} ${member.lastName} has been removed from project members.`)
+      }
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <span className="ml-2">Loading data...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center text-red-500">{error}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <CoordinatorWelcomeCard />
+      <h1 className="mb-6 text-3xl font-bold">Project Member Management</h1>
+
+      <Tabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {activeTab === "assign" && (
+        <Card>
+          <div className="p-6">
+            <h2 className="mb-4 text-xl font-semibold">Assign Project Members</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Name</th>
+                    <th className="px-4 py-2 text-left">Email</th>
+                    <th className="px-4 py-2 text-left">Position</th>
+                    <th className="px-4 py-2 text-left">Roles</th>
+                    <th className="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {users.map((user) => {
+                    const isMember = isProjectMember(user)
+                    return (
+                      <tr key={user._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          {user.firstName} {user.lastName}
+                        </td>
+                        <td className="px-4 py-3">{user.email}</td>
+                        <td className="px-4 py-3">{user.staffPost}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {Array.from(new Set(user.role.map((r) => r.trim()))).map((r, i) => (
+                              <span key={i} className="inline-block rounded-full bg-gray-200 px-2 py-1 text-xs">
+                                {r.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => handleAddMember(user)}
+                            disabled={isMember || addingMember === user._id}
+                            className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium ${isMember
+                              ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                              : "bg-green-50 text-green-700 hover:bg-green-100"
+                              }`}
+                          >
+                            {addingMember === user._id ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <UserPlus className="mr-2 h-4 w-4" />
+                            )}
+                            {isMember ? "Already Member" : "Assign as Member"}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {activeTab === "manage" && (
+        <Card>
+          <div className="p-6">
+            <h2 className="mb-4 text-xl font-semibold">Manage Project Members</h2>
+            {projectMembers.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">
+                No project members found. Assign members from the &quot;Assign Members&quot; tab.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Name</th>
+                      <th className="px-4 py-2 text-left">Email</th>
+                      <th className="px-4 py-2 text-left">Position</th>
+                      <th className="px-4 py-2 text-left">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {projectMembers.map((member) => (
+                      <tr key={member._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          {member.firstName} {member.lastName}
+                        </td>
+                        <td className="px-4 py-3">{member.email}</td>
+                        <td className="px-4 py-3">{member.staffPost}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleViewMember(member)}
+                              className="inline-flex items-center rounded-md bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                            >
+                              <Eye className=" h-4 w-4" />
+
+                            </button>
+                            <button
+                              onClick={() => handleEditMember(member)}
+                              className="inline-flex items-center rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100"
+                            >
+                              <Edit className=" h-4 w-4" />
+
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMember(member)}
+                              className="inline-flex items-center rounded-md bg-red-50 px-2 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+                            >
+                              <Trash className=" h-4 w-4" />
+
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+    </div>
+  )
+}
+
