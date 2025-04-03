@@ -1,4 +1,6 @@
+/* eslint-disable no-unused-vars */
 import React from "react";
+import PropTypes from "prop-types";
 import schoolLogo from "../../assets/school.jpeg";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../pages/common/AuthContext";
@@ -61,5 +63,9 @@ const Header = ({ isLoggedIn = false }) => {
     </div>
   );
 };
+Header.propTypes = {
+  isLoggedIn: PropTypes.bool,
+};
 
 export default Header;
+
