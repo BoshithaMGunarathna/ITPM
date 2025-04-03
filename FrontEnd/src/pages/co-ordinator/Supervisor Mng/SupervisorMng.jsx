@@ -117,17 +117,17 @@ export default function SupervisorMng() {
     return eligibleStaffPosts.includes(user.staffPost)
   }
 
-  // Check if supervisor has groups
+  
   const hasGroups = (supervisor) => {
     return supervisor.groups && supervisor.groups.length > 0
   }
 
-  // Handle adding a user as supervisor
+
   const handleAddSupervisor = async (user) => {
-    // Set the user being added to show loading state on button
+    
     setAddingSupervisor(user._id)
 
-    // Show SweetAlert confirmation
+    
     if (typeof window !== "undefined" && window.Swal) {
       const result = await window.Swal.fire({
         title: "Confirm",
@@ -163,10 +163,10 @@ export default function SupervisorMng() {
 
           const newSupervisor = await response.json()
 
-          // Update supervisors list
+          
           setSupervisors([...supervisors, newSupervisor])
 
-          // Show success message
+         
           window.Swal.fire("Added!", `${user.firstName} ${user.lastName} has been added as a supervisor.`, "success")
         } catch (error) {
           console.error("Error adding supervisor:", error)
@@ -174,7 +174,7 @@ export default function SupervisorMng() {
         }
       }
     } else {
-      // Fallback if SweetAlert is not available
+      
       if (confirm(`Are you sure you want to add ${user.firstName} ${user.lastName} as a supervisor?`)) {
         try {
           const response = await fetch("http://localhost:510/supervisorList/add", {
@@ -207,19 +207,19 @@ export default function SupervisorMng() {
       }
     }
 
-    // Reset adding state
+   
     setAddingSupervisor(null)
   }
 
-  // Handle viewing supervisor details
+
   const handleViewSupervisor = (supervisor) => {
     setSelectedSupervisor(supervisor)
     setIsModalOpen(true)
   }
 
-  // Handle deleting supervisor
+
   const handleDeleteSupervisor = async (supervisor) => {
-    // Check if supervisor has groups
+    
     if (hasGroups(supervisor)) {
       if (typeof window !== "undefined" && window.Swal) {
         window.Swal.fire(
