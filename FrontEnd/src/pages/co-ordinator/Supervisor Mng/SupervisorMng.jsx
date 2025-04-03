@@ -1,377 +1,351 @@
-import React, { useEffect, useState } from 'react'
-import CoordinatorWelcomeCard from '../../../components/CoordinatorWelcomeCard'
-import { Navigate, useNavigate } from 'react-router-dom'
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Modal from 'react-modal';
-import Sweetalert from 'sweetalert2'
-import {  FaTrash } from 'react-icons/fa';
+"use client"
 
+import { useEffect, useState } from "react"
+import { Loader2, UserPlus, Filter } from "lucide-react"
 
-function SupervisorMng() {
-  const Navigate = useNavigate();
-  const [tableData, setTableData] = useState([]);
-  const [supData, setSupData] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
-  const [selectedUser, setSelectedUser] = useState({
-    firstName: '',
-    lastName: '',
-    contactNo: '',
-    email: ''
-  });; // State to store the selected user for pop up form
-  const [addedUsers, setAddedUsers] = useState([]);
+// Simple Card component
+import PropTypes from "prop-types"
 
-
-  useEffect(() => {
-    // Fetch added users from the database or any other source
-
-    axios.get('http://localhost:510/supervisorList/')
-      .then(response => {
-        setAddedUsers(response.data);
-        console.log('Added users:', response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching added users:', error);
-      });
-
-  }, []);
-
-  const handlePage = () => {
-    Navigate('/dashboard/addSupervisor');
-  }
-
-  const handleAssignPage = (rowData) => {
-    Navigate('/dashboard/assignmember', { state: { rowData: rowData } });
-  }
-
-  //pop up window eka
-  const handleUpdate = (user) => {
-    setSelectedUser(user); // Set the selected user details
-    setIsModalOpen(true); // Open the modal
-  };
-
-
-  //update function
-
-  const handleAdd = (rowData) => {
-    // Extract relevant data from rowData
-    const relevantData = {
-      firstName: rowData.firstName,
-      lastName: rowData.lastName,
-      contactNo: rowData.contactNo,
-      email: rowData.email,
-      staffPost: rowData.staffPost,
-      level: rowData.level
-    };
-  
-    // Add the supervisor to the supervisor list
-    axios.post('http://localhost:510/supervisorList/add', relevantData)
-      .then(() => {
-        // Update the user's role in the user database
-        axios.put('http://localhost:510/user/update-role', {
-          userId: rowData._id,  // Use the user's ID
-          newRole: ['supervisor']  // Add 'supervisor' to the role array
-        })
-        .then(() => {
-          // Update the state to reflect changes
-          setAddedUsers(prevUsers => [...prevUsers, rowData]);
-          
-          toast.success('Supervisor added to list successfully');
-          Sweetalert.fire({
-            title: 'Success',
-            text: 'Supervisor added successfully and user role updated',
-            icon: 'success',
-            confirmButtonText: 'OK'
-          });
-          console.log('Supervisor added successfully and user role updated');
-        })
-        .catch((err) => {
-          console.log('Error updating user role:', err);
-          Sweetalert.fire({
-            title: 'Error',
-            text: err.response.data.message || 'Error updating user role',
-            icon: 'error',
-            confirmButtonText: 'OK'
-          });
-        });
-      })
-      .catch((err) => {
-        console.log('Error:', err);
-        Sweetalert.fire({
-          title: 'Error',
-          text: err.response.data.message || 'Error adding supervisor',
-          icon: 'error',
-          confirmButtonText: 'OK'
-        });
-      });
-  };
-  
-
-
-
-  //update function
-  //  const handleupdate = async (e) => {
-  //   e.preventDefault();
-  //   try {
-  //     const response = await axios.put(`http://localhost:510/user/update-account/${selectedUser._id}`, selectedUser);
-
-  //     if (response.status === 200) {
-  //       console.log('User updated successfully:', response.data.message);
-  //       setTableData(prevData => prevData.map(data => data._id === selectedUser._id ? selectedUser : data)); // refresh nokara table eke adaala data eka witarak update wenawa
-  //       setIsModalOpen(false); // Close modal after successful update
-  //       Sweetalert.fire({ 
-  //         title: 'Success',
-  //         text: 'User updated successfully',
-  //         icon: 'success',
-  //         confirmButtonText: 'OK'
-  //       })
-  //     } else {
-  //       console.error('Failed to update user:', response.data.message);
-  //       Sweetalert.fire({
-  //         title: 'Error',
-  //         text: response.data.message,
-  //         icon: 'error',
-  //         confirmButtonText: 'OK'
-  //       })
-  //     }
-  //   } catch (error) {
-  //     console.error('Error updating user:', error.message);
-  //     Sweetalert.fire({
-  //       title: 'Error',
-  //       text: error.message,
-  //       icon: 'error',
-  //       confirmButtonText: 'OK'
-  //     })
-  //   }
-  // };
-
-  // const handleDelete = async (id) => {
-  //   const confirmation = window.confirm('Are you sure you want to delete this user?');
-
-  //   if (confirmation) {
-  //     try {
-  //       const response = await axios.delete(`http://localhost:510/user/delete-account/${id}`);
-
-  //       if (response.status === 200) {
-  //         console.log('User deleted successfully');
-  //         // Remove the deleted user from the table data
-  //         setTableData(prevData => prevData.filter(data => data._id !== id));
-  //         toast.success('User deleted successfully');
-  //       } else {
-  //         console.error('Failed to delete user:', response.data.message);
-  //         toast.error('Failed to delete user:', response.data.message);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error deleting user:', error.message);
-  //       toast.error('Error deleting user:', error.message);
-  //     }
-  //   }
-  // };
-
-  const handleDelete = (email) => {
-    // Find the user in supData with the matching email
-    const user = supData.find(user => user.email === email);
-    // Find the user in tableData with the matching email
-    const user1 = tableData.find(user => user.email === email);
-  
-    if (user && user1) {
-      // Delete the user from the supervisor list database
-      axios.delete(`http://localhost:510/supervisorList/delete/${user._id}`)
-        .then(() => {
-          // Update the user's roles in the user database
-          return axios.put('http://localhost:510/user/remove-role', {
-            userId: user1._id, // Use the user table ID
-            roleToRemove: 'supervisor' 
-          });
-        })
-        .then(() => {
-          // Update the state to reflect changes
-          setTableData(prevData => prevData.filter(data => data._id !== user1._id));
-          setSupData(prevSupData => prevSupData.filter(sup => sup.email !== email));
-  
-          toast.success('Supervisor deleted successfully and user role updated');
-          Sweetalert.fire({
-            title: 'Success',
-            text: 'Supervisor deleted successfully and user role updated',
-            icon: 'success',
-            confirmButtonText: 'OK'
-          });
-        })
-        .catch((err) => {
-          console.log('Error:', err);
-          Sweetalert.fire({
-            title: 'Error',
-            text: err.response?.data?.message || 'Error occurred',
-            icon: 'error',
-            confirmButtonText: 'OK'
-          });
-        });
-    } else {
-      Sweetalert.fire({
-        title: 'Error',
-        text: 'User not found',
-        icon: 'error',
-        confirmButtonText: 'OK'
-      });
-    }
-  };
-  
-  
-
-
-
-  useEffect(() => {
-    axios.get('http://localhost:510/user')
-      .then(res => {
-        const supervisor = res.data.filter(user => user.level === "1" || user.level === "2");
-        console.log(supervisor);
-    
-        setTableData(supervisor);
-      })
-      .catch(err => {
-        console.log(err);
-      });
-  }, []);
-
-  useEffect(() => {
-    axios.get('http://localhost:510/supervisorList/')
-      .then(res => {
-        const supervisor = res.data;
-        console.log(supervisor );
-        setSupData(supervisor);
-      })
-      .catch(err => {
-        console.log(err);
-      });
-  }, []);
-
+function Card({ className, children, ...props }) {
   return (
-    <div className="p-4">
-      <CoordinatorWelcomeCard />
-      <p className="mt-2 text-gray-600">Supervisor Management</p>
-      <div className="overflow-x-auto bg-white px-6 py-8 rounded shadow-md text-black w-full">
-        <h2 className="text-lg font-bold mb-4">Assign Users as Supervisors</h2>
-        <table className="min-w-full text-left text-sm font-light">
-          <thead className="border-b bg-white font-medium dark:border-neutral-500 dark:bg-neutral-600">
-            <tr>
-              <th scope="col" className="px-6 py-4">First Name</th>
-              <th scope="col" className="px-6 py-4">Last Name</th>
-              <th scope="col" className="px-6 py-4">Contact Number</th>
-              {/* <th scope="col" className="px-6 py-4">Level</th> */}
-              <th scope="col" className="px-6 py-4">Post</th>
-              <th scope="col" className="px-6 py-4">Email</th>
-             
-              <th scope="col" className="px-6 py-4">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-  {tableData.map((data, index) => {
-    const isAdded = addedUsers.find((supervisor) => supervisor.email === data.email);
-    return (
-      <tr key={index} className="border-dark:border-neutral-500">
-        <td className="px-6 py-4">{data.firstName}</td>
-        <td className="px-6 py-4">{data.lastName}</td>
-        <td className="px-6 py-4">{data.contactNo}</td>
-        {/* <td className="px-6 py-4">{data.level}</td> */}
-        <td className="px-6 py-4">{data.staffPost}</td>
-        <td className="px-6 py-4">{data.email}</td>
-        
-      
-        <td>
-          <button
-            onClick={() => handleAdd(data)}
-            className={`bg-blue-500 rounded bg-primary px-3 pb-2 pt-2.5 ml-2 ${addedUsers.find((supervisor) => supervisor.email === data.email) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={addedUsers.find((supervisor) => supervisor.email === data.email)}
-          >
-            Add
-          </button>
-        </td>
-        <td>
-          {/* Conditionally render the Delete button if the user exists in the database */}
-          {isAdded && (
-            <button
-              onClick={() => handleDelete(data.email)} // Pass email instead of ID
-              className="bg-red-500 inline-block rounded px-3 pb-2 pt-2.5 ml-2"
-            >
-              <FaTrash />
-            </button>
-          )}
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
-
-        </table>
-      </div>
-
-
-      {/* pop up for Update */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500 bg-opacity-75">
-          <div className="bg-white p-8 rounded-md shadow-md w-96">
-            <h2 className="text-xl mb-4">Update User</h2>
-            <form onSubmit={handleUpdateUser}>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2">First Name</label>
-                <input
-                  type="text"
-                  value={selectedUser.firstName}
-                  onChange={(e) => setSelectedUser({ ...selectedUser, firstName: e.target.value })}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2">Last Name</label>
-                <input
-                  type="text"
-                  value={selectedUser.lastName}
-                  onChange={(e) => setSelectedUser({ ...selectedUser, lastName: e.target.value })}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2">Contact Number</label>
-                <input
-                  type="text"
-                  value={selectedUser.contactNo}
-                  onChange={(e) => setSelectedUser({ ...selectedUser, contactNo: e.target.value })}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
-                <input
-                  type="email"
-                  value={selectedUser.email}
-                  onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2 focus:outline-none focus:shadow-outline"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                >
-                  Update
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+    <div className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className || ""}`} {...props}>
+      {children}
     </div>
   )
 }
 
-export default SupervisorMng;
+Card.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node.isRequired,
+}
+
+export default function SupervisorMng() {
+  const [users, setUsers] = useState([])
+  const [supervisors, setSupervisors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [addingSupervisor, setAddingSupervisor] = useState(null)
+  const [showAllUsers, setShowAllUsers] = useState(false)
+  const [activeTab, setActiveTab] = useState("eligible")
+
+  // List of eligible staff positions for supervisors
+  const eligibleStaffPosts = [
+    "Chancellor",
+    "Vice-Chancellor",
+    "Deans",
+    "Department Chairs/Heads",
+    "Professors",
+    "Associate Professors",
+    "Assistant Professors",
+  ]
+
+  // Fetch users and supervisors
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+
+        // Fetch users
+        const usersResponse = await fetch("http://localhost:510/user")
+        if (!usersResponse.ok) {
+          throw new Error("Failed to fetch users")
+        }
+        const usersData = await usersResponse.json()
+
+        // Fetch existing supervisors - UPDATED API ENDPOINT
+        const supervisorsResponse = await fetch("http://localhost:510/supervisorList/")
+        const supervisorsData = supervisorsResponse.ok ? await supervisorsResponse.json() : []
+
+        setUsers(usersData)
+        setSupervisors(supervisorsData || [])
+      } catch (err) {
+        setError("Error fetching data. Please try again later.")
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  // Filter users based on eligible staff posts
+  const getEligibleUsers = () => {
+    if (showAllUsers) {
+      return users
+    }
+    return users.filter((user) => eligibleStaffPosts.includes(user.staffPost))
+  }
+
+  // Check if user is already a supervisor
+  const isSupervisor = (user) => {
+    return supervisors.some((supervisor) => supervisor.email === user.email)
+  }
+
+  // Handle adding a user as supervisor - UPDATED API ENDPOINT
+  const handleAddSupervisor = async (user) => {
+    // Set the user being added to show loading state on button
+    setAddingSupervisor(user._id)
+
+    // Show SweetAlert confirmation
+    if (typeof window !== "undefined" && window.Swal) {
+      const result = await window.Swal.fire({
+        title: "Confirm",
+        text: `Are you sure you want to add ${user.firstName} ${user.lastName} as a supervisor?`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, add supervisor!",
+      })
+
+      if (result.isConfirmed) {
+        try {
+          const response = await fetch("http://localhost:510/supervisorList/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              staffPost: user.staffPost,
+              contactNo: user.contactNo,
+              role: user.role,
+            }),
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.message || "Failed to add supervisor")
+          }
+
+          const newSupervisor = await response.json()
+
+          // Update supervisors list
+          setSupervisors([...supervisors, newSupervisor])
+
+          // Show success message
+          window.Swal.fire("Added!", `${user.firstName} ${user.lastName} has been added as a supervisor.`, "success")
+        } catch (error) {
+          console.error("Error adding supervisor:", error)
+          window.Swal.fire("Error!", error.message || "Failed to add supervisor.", "error")
+        }
+      }
+    } else {
+      // Fallback if SweetAlert is not available
+      if (confirm(`Are you sure you want to add ${user.firstName} ${user.lastName} as a supervisor?`)) {
+        try {
+          const response = await fetch("http://localhost:510/supervisorList/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              staffPost: user.staffPost,
+              contactNo: user.contactNo,
+              role: user.role,
+            }),
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.message || "Failed to add supervisor")
+          }
+
+          const newSupervisor = await response.json()
+          setSupervisors([...supervisors, newSupervisor])
+          alert(`${user.firstName} ${user.lastName} has been added as a supervisor.`)
+        } catch (error) {
+          console.error("Error adding supervisor:", error)
+          alert(error.message || "Failed to add supervisor.")
+        }
+      }
+    }
+
+    // Reset adding state
+    setAddingSupervisor(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <span className="ml-2">Loading data...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center text-red-500">{error}</div>
+      </div>
+    )
+  }
+
+  const eligibleUsers = getEligibleUsers()
+
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="mb-6 text-3xl font-bold">Supervisor Management</h1>
+
+      {/* Tabs */}
+      <div className="border-b mb-6">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setActiveTab("eligible")}
+            className={`px-4 py-2 font-medium ${
+              activeTab === "eligible" ? "border-b-2 border-primary text-primary" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Eligible Users
+          </button>
+          <button
+            onClick={() => setActiveTab("supervisors")}
+            className={`px-4 py-2 font-medium ${
+              activeTab === "supervisors"
+                ? "border-b-2 border-primary text-primary"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Current Supervisors
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "eligible" && (
+        <Card>
+          <div className="p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Eligible Users for Supervisor Role</h2>
+              <div className="flex items-center">
+                <label className="inline-flex items-center mr-4">
+                  <input
+                    type="checkbox"
+                    checked={showAllUsers}
+                    onChange={() => setShowAllUsers(!showAllUsers)}
+                    className="h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-sm">Show All Users</span>
+                </label>
+                <div className="inline-flex items-center px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-sm">
+                  <Filter className="h-4 w-4 mr-1" />
+                  {showAllUsers ? "Showing all users" : "Filtered by eligible positions"}
+                </div>
+              </div>
+            </div>
+
+            {eligibleUsers.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">No eligible users found.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Name</th>
+                      <th className="px-4 py-2 text-left">Email</th>
+                      <th className="px-4 py-2 text-left">Position</th>
+                      <th className="px-4 py-2 text-left">Roles</th>
+                      <th className="px-4 py-2 text-left">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {eligibleUsers.map((user) => {
+                      const isUserSupervisor = isSupervisor(user)
+                      return (
+                        <tr key={user._id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            {user.firstName} {user.lastName}
+                          </td>
+                          <td className="px-4 py-3">{user.email}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`${eligibleStaffPosts.includes(user.staffPost) ? "text-green-600 font-medium" : ""}`}
+                            >
+                              {user.staffPost}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1">
+                              {Array.from(new Set(user.role.map((r) => r.trim()))).map((r, i) => (
+                                <span key={i} className="inline-block rounded-full bg-gray-200 px-2 py-1 text-xs">
+                                  {r.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => handleAddSupervisor(user)}
+                              disabled={isUserSupervisor || addingSupervisor === user._id}
+                              className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium ${
+                                isUserSupervisor
+                                  ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                                  : "bg-green-50 text-green-700 hover:bg-green-100"
+                              }`}
+                            >
+                              {addingSupervisor === user._id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <UserPlus className="mr-2 h-4 w-4" />
+                              )}
+                              {isUserSupervisor ? "Already Supervisor" : "Add as Supervisor"}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {activeTab === "supervisors" && (
+        <Card>
+          <div className="p-6">
+            <h2 className="mb-4 text-xl font-semibold">Current Supervisors</h2>
+            {supervisors.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">
+                No supervisors found. Add supervisors from the &quot;Eligible Users&quot; tab.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Name</th>
+                      <th className="px-4 py-2 text-left">Email</th>
+                      <th className="px-4 py-2 text-left">Position</th>
+                      <th className="px-4 py-2 text-left">Contact</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {supervisors.map((supervisor) => (
+                      <tr key={supervisor._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          {supervisor.firstName} {supervisor.lastName}
+                        </td>
+                        <td className="px-4 py-3">{supervisor.email}</td>
+                        <td className="px-4 py-3">{supervisor.staffPost}</td>
+                        <td className="px-4 py-3">{supervisor.contactNo}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+    </div>
+  )
+}
+
