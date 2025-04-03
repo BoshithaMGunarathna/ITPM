@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import StudentDash from './pages/student/StudentDash';
@@ -132,7 +133,7 @@ function App() {
 
           {/* Supervisor Routes  */}
           {/* <Route path='/dashboard/reports' element={<SupervisorReportMarks />} /> */}
-          <Route path='/dashboard/supervisorDash' element={<SupervisorDash />} />//
+          <Route path='/dashboard/supervisorDash' element={<SupervisorDash />} />
           <Route path='/dashboard/addReportMarks' element={<SupervisorReportMarks />} />
           <Route path='/dashboard/updateMarksReports' element={<ExaminerPresentationMarks2 />} />
 
