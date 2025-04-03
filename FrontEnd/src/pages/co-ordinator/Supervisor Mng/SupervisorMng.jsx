@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Loader2, UserPlus, Filter, Eye, Trash, X, AlertTriangle } from "lucide-react"
 
-// Simple Card component
+
 import PropTypes from "prop-types";
 
 function Card({ className, children, ...props }) {
@@ -82,7 +82,7 @@ export default function SupervisorMng() {
         }
         const usersData = await usersResponse.json()
 
-        // Fetch existing supervisors - UPDATED API ENDPOINT
+        // Fetch existing supervisors 
         const supervisorsResponse = await fetch("http://localhost:510/supervisor/")
         const supervisorsData = supervisorsResponse.ok ? await supervisorsResponse.json() : []
 
