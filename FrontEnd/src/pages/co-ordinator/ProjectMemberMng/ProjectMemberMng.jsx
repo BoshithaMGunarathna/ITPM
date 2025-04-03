@@ -288,21 +288,25 @@ export default function ProjectMemberMng() {
 
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: value,
-    })
-
+    const { name, value } = e.target;
+    
     // Reset subType when type changes
     if (name === "assignmentType") {
       setFormData({
         ...formData,
         assignmentType: value,
-        assignmentSubType: value === "presentation" ? presentationSubTypes[0] : reportSubTypes[0],
-      })
+        assignmentSubType: value === "presentation" 
+          ? presentationSubTypes[0] 
+          : reportSubTypes[0],
+      });
+      return;
     }
-  }
+  
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
 
   // Handle assignment type change (schedule or marking)
   const handleAssignmentTypeChange = (type) => {
@@ -322,57 +326,58 @@ export default function ProjectMemberMng() {
     }
   }
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-
+    e.preventDefault();
+    setSubmitting(true);
+  
     try {
-      // Determine which API endpoint to use based on assignment type
-      const endpoint =
-        assignmentType === "schedule" ? "http://localhost:510/assignShedule/add" : "http://localhost:510/assignMark/add"
-
+      const endpoint = assignmentType === "schedule" 
+        ? "http://localhost:510/assignShedule/add" 
+        : "http://localhost:510/assignMark/add";
+  
+      // Prepare data based on assignment type
+      const requestData = assignmentType === "schedule"
+        ? {
+            title: `${formData.assignmentType} - ${formData.assignmentSubType}`,
+            type: formData.assignmentType,
+            subType: formData.assignmentSubType,
+            user: selectedMember._id,
+            role: selectedMember.role // Assuming role exists in selectedMember
+          }
+        : {
+            // For marking assignment, send complete member data
+            ...selectedMember,
+            assignmentType: formData.assignmentType,
+            assignmentSubType: formData.assignmentSubType
+          };
+  
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          memberId: selectedMember._id,
-          assignmentType: formData.assignmentType,
-          assignmentSubType: formData.assignmentSubType,
-        }),
-      })
-
+        body: JSON.stringify(requestData),
+      });
+  
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Failed to assign member")
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to assign member");
       }
-
-      // Show success message
-      if (typeof window !== "undefined" && window.Swal) {
-        window.Swal.fire(
-          "Success!",
-          `${selectedMember.firstName} ${selectedMember.lastName} has been assigned to ${assignmentType === "schedule" ? "schedule" : "create marking rubrics for"} ${formData.assignmentType} - ${formData.assignmentSubType}.`,
-          "success",
-        )
-      } else {
-        alert(
-          `${selectedMember.firstName} ${selectedMember.lastName} has been assigned to ${assignmentType === "schedule" ? "schedule" : "create marking rubrics for"} ${formData.assignmentType} - ${formData.assignmentSubType}.`,
-        )
-      }
-
-      // Close modal
-      setIsModalOpen(false)
+  
+      // Success toast
+      toast.success(
+        `${selectedMember.firstName} ${selectedMember.lastName} has been assigned to ${
+          assignmentType === "schedule" ? "schedule" : "create marking rubrics for"
+        } ${formData.assignmentType} - ${formData.assignmentSubType}.`
+      );
+  
+      setIsModalOpen(false);
     } catch (error) {
-      console.error("Error assigning member:", error)
-      if (typeof window !== "undefined" && window.Swal) {
-        window.Swal.fire("Error!", error.message || "Failed to assign member.", "error")
-      } else {
-        alert(error.message || "Failed to assign member.")
-      }
+      console.error("Error assigning member:", error);
+      toast.error(error.message || "Failed to assign member.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
 
 
